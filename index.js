@@ -51,6 +51,15 @@ const saveImage = (imageBuffer, hash) => {
   );
 };
 
+const savePrompt = async (prompt, hash) => {
+  writeFile(process.cwd() + "/prompts/" + hash + ".txt", prompt, (err) => {
+    if (err) {
+      console.log(err);
+      return;
+    }
+  });
+};
+
 const main = async () => {
   puppeteer.use(Stealth());
   const browser = await puppeteer.launch();
@@ -64,11 +73,13 @@ const main = async () => {
   page.on("response", async (e) => {
     if (e.url().includes("getcaptcha")) {
       const body = await e.json();
+      const prompt = body.requester_question.en;
       let imageCount = 0;
       body.tasklist.forEach(async (t) => {
         const buffer = await downloadRawImage(t.datapoint_uri);
         const hash = await imghash.hash(buffer);
         saveImage(buffer, hash);
+        savePrompt(prompt, hash);
         imageCount++;
         doneEmitter.emit("downloadedImage", imageCount);
       });
